@@ -1,12 +1,13 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/phetzy/yt-downloader/internal/utils"
+	"github.com/phetzy/yt-downloader/internal/youtube"
 )
 
 // updateDirectoryPicker handles updates for the directory picker state
@@ -176,20 +177,54 @@ func (m *Model) viewDirectoryPicker() string {
 	return containerStyle.Render(content)
 }
 
-// startDownload initiates the download process
+// startDownload initiates the download process with actual YouTube download
 func startDownload(videoURL string, selectedFormat interface{}, downloadPath string) tea.Cmd {
 	return func() tea.Msg {
-		// For now, we'll complete the download immediately
-		// In a real implementation, this would:
-		// 1. Use the youtube downloader
-		// 2. Stream progress updates
-		// 3. Save to the selected path
+		// Create YouTube client
+		client := youtube.NewClient()
 		
-		// Simulate successful download
-		time.Sleep(2 * time.Second)
+		// Extract video ID from URL
+		videoInfo, err := client.GetVideoInfo(videoURL)
+		if err != nil {
+			return errMsg{err: fmt.Errorf("failed to get video info: %w", err)}
+		}
 		
+		// Get the selected format
+		var format youtube.Format
+		if selectedFormat != nil {
+			if formatInfo, ok := selectedFormat.(FormatInfo); ok {
+				// Find matching format in videoInfo
+				for _, f := range videoInfo.Formats {
+					if f.Quality == formatInfo.Quality {
+						format = f
+						break
+					}
+				}
+			}
+		}
+		
+		// If no format selected, use first available
+		if format.Quality == "" && len(videoInfo.Formats) > 0 {
+			format = videoInfo.Formats[0]
+		}
+		
+		// Create downloader
+		downloader := youtube.NewDownloader(client)
+		
+		// Download with progress tracking
+		ctx := context.Background()
+		err = downloader.Download(ctx, videoInfo.ID, format, downloadPath, func(progress youtube.DownloadProgress) {
+			// Progress updates would be sent here
+			// For now, we'll just let it download
+		})
+		
+		if err != nil {
+			return errMsg{err: fmt.Errorf("download failed: %w", err)}
+		}
+		
+		// Download complete
 		return downloadCompleteMsg{
-			FilePath: downloadPath,
+			FilePath: fmt.Sprintf("%s/%s.%s", downloadPath, videoInfo.Title, format.Extension),
 		}
 	}
 }

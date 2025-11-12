@@ -47,6 +47,16 @@ func (m *Model) viewQualitySelect() string {
 		if len(m.qualityList.Items()) == 0 && len(info.Formats) > 0 {
 			items := convertFormatsToItems(info.Formats)
 			m.qualityList.SetItems(items)
+			
+			// Ensure list has reasonable default dimensions if not set
+			if m.width > 0 {
+				m.qualityList.SetWidth(m.width)
+				m.qualityList.SetHeight(20) // Give it a fixed height for visibility
+			} else {
+				// Fallback dimensions
+				m.qualityList.SetWidth(80)
+				m.qualityList.SetHeight(20)
+			}
 		}
 		
 		b.WriteString(RenderBox(fmt.Sprintf(

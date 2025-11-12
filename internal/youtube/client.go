@@ -93,6 +93,7 @@ func (c *Client) GetVideoInfo(url string) (*VideoInfo, error) {
 }
 
 // parseFormats converts youtube.Format to our Format type
+// Prioritizes MP4/M4A formats for better compatibility
 func (c *Client) parseFormats(ytFormats youtube.FormatList) []Format {
 	var formats []Format
 
@@ -122,7 +123,30 @@ func (c *Client) parseFormats(ytFormats youtube.FormatList) []Format {
 		}
 	}
 
+	// Sort formats to prioritize MP4/M4A over WebM for compatibility
+	// MP4/M4A first, then WebM, then others
+	sortFormatsByCompatibility(formats)
+
 	return formats
+}
+
+// sortFormatsByCompatibility sorts formats to prioritize more compatible formats
+func sortFormatsByCompatibility(formats []Format) {
+	// Sort in place - MP4/M4A formats first, then WebM, then others
+	for i := 0; i < len(formats); i++ {
+		for j := i + 1; j < len(formats); j++ {
+			// Prefer MP4/M4A over WebM
+			iPreferred := strings.Contains(formats[i].MimeType, "mp4") || 
+				strings.Contains(formats[i].MimeType, "m4a")
+			jPreferred := strings.Contains(formats[j].MimeType, "mp4") || 
+				strings.Contains(formats[j].MimeType, "m4a")
+			
+			if !iPreferred && jPreferred {
+				// Swap - j is more preferred than i
+				formats[i], formats[j] = formats[j], formats[i]
+			}
+		}
+	}
 }
 
 // extractVideoID extracts the video ID from various YouTube URL formats
