@@ -2,6 +2,8 @@ package tui
 
 import (
 	"errors"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // Custom errors

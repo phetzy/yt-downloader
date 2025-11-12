@@ -266,6 +266,26 @@ go build
 ./yt-downloader
 ```
 
+#### Live Reload with Air
+
+For a better development experience, use [Air](https://github.com/cosmtrek/air) for live reloading:
+
+```bash
+# Install Air (if not already installed)
+go install github.com/air-verse/air@latest
+
+# Run with live reload
+air
+
+# Air will automatically rebuild and restart the app when you make changes
+```
+
+Air configuration is already set up in `.air.toml`. The app will:
+- Automatically rebuild when you save Go files
+- Clear the screen on rebuild for a clean view
+- Show colored build output
+- Exclude test files from triggering rebuilds
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

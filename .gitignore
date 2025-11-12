@@ -41,6 +41,10 @@ Thumbs.db
 # GoReleaser
 .goreleaser.yml.bak
 
+# Air (live reload)
+tmp/
+build-errors.log
+
 # Plan
 PLAN.md
 plan.md
