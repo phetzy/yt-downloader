@@ -109,17 +109,32 @@ func (c *Client) parseFormats(ytFormats youtube.FormatList) []Format {
 			HasAudio:    f.AudioChannels > 0,
 		}
 
-		// Determine resolution
+		// Determine resolution and generate proper quality label
 		if f.Width > 0 && f.Height > 0 {
 			format.Resolution = fmt.Sprintf("%dx%d", f.Width, f.Height)
+			// Generate proper quality label from height (720p, 1080p, etc)
+			format.Quality = fmt.Sprintf("%dp", f.Height)
+		} else if format.IsAudioOnly {
+			// For audio-only, use bitrate-based quality
+			if f.Bitrate >= 128000 {
+				format.Quality = "Audio - High"
+			} else if f.Bitrate >= 96000 {
+				format.Quality = "Audio - Medium"
+			} else {
+				format.Quality = "Audio - Low"
+			}
 		}
 
 		// Determine extension from MIME type
 		format.Extension = getExtensionFromMimeType(f.MimeType)
 
-		// Only include formats with audio for video+audio, or audio-only formats
-		if (format.HasVideo && format.HasAudio) || format.IsAudioOnly {
-			formats = append(formats, format)
+		// Include video formats (combined or video-only) and audio-only formats
+		// Modern YouTube often separates video and audio streams
+		if format.HasVideo || format.IsAudioOnly {
+			// Only include if it has reasonable file size (skip empty streams)
+			if format.FileSize > 0 {
+				formats = append(formats, format)
+			}
 		}
 	}
 
