@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -30,12 +32,22 @@ type Model struct {
 	// Component states
 	urlInput    textinput.Model
 	spinner     spinner.Model
+	qualityList list.Model
+	progressBar progress.Model
 	
 	// Data
-	videoURL    string
-	videoInfo   interface{} // Will be replaced with actual video info struct
+	videoURL       string
+	videoInfo      interface{} // Will be replaced with actual video info struct
 	selectedFormat interface{}
-	downloadPath string
+	downloadPath   string
+	
+	// Directory picker state
+	currentDir     string
+	directories    []string
+	selectedDirIdx int
+	
+	// Progress tracking
+	downloadProgress float64
 	
 	// Flags
 	quitting    bool
@@ -55,10 +67,21 @@ func NewApp() *Model {
 	s.Spinner = spinner.Dot
 	s.Style = spinnerStyle
 	
+	// Initialize progress bar
+	prog := progress.New(progress.WithDefaultGradient())
+	
+	// Initialize list (will be populated later)
+	l := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
+	l.Title = "Select Quality"
+	l.SetShowStatusBar(false)
+	l.SetFilteringEnabled(false)
+	
 	return &Model{
-		state:    StateURLInput,
-		urlInput: ti,
-		spinner:  s,
+		state:       StateURLInput,
+		urlInput:    ti,
+		spinner:     s,
+		qualityList: l,
+		progressBar: prog,
 	}
 }
 

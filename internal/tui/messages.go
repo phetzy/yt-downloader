@@ -2,8 +2,10 @@ package tui
 
 import (
 	"errors"
+	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/phetzy/yt-downloader/internal/youtube"
 )
 
 // Custom errors
@@ -57,46 +59,59 @@ type downloadCompleteMsg struct {
 	FilePath string
 }
 
+// getYouTubeClient creates a new YouTube client instance
+func getYouTubeClient() *youtube.Client {
+	return youtube.NewClient()
+}
+
 // fetchVideoInfo fetches video information from YouTube
-// This will be implemented in the youtube package
 func fetchVideoInfo(url string) tea.Cmd {
 	return func() tea.Msg {
-		// TODO: Implement actual YouTube API call
-		// For now, return a placeholder
+		// Import the youtube package at the top level
+		// This function will be called asynchronously
+		client := getYouTubeClient()
+		
+		videoInfo, err := client.GetVideoInfo(url)
+		if err != nil {
+			return errMsg{err: err}
+		}
+		
+		// Convert YouTube formats to TUI format
+		formats := make([]FormatInfo, len(videoInfo.Formats))
+		for i, f := range videoInfo.Formats {
+			formats[i] = FormatInfo{
+				ID:          f.Quality,
+				Quality:     f.Quality,
+				Resolution:  f.Resolution,
+				Format:      f.Extension,
+				FileSize:    f.FileSize,
+				IsAudioOnly: f.IsAudioOnly,
+				HasVideo:    f.HasVideo,
+				HasAudio:    f.HasAudio,
+			}
+		}
+		
 		return videoInfoMsg{
-			Title:      "Sample Video",
-			Author:     "Sample Channel",
-			Duration:   "10:30",
-			Views:      "1,000,000",
-			UploadDate: "2024-01-01",
-			Formats: []FormatInfo{
-				{
-					ID:         "22",
-					Quality:    "720p",
-					Resolution: "1280x720",
-					Format:     "MP4",
-					FileSize:   50000000,
-					HasVideo:   true,
-					HasAudio:   true,
-				},
-				{
-					ID:         "18",
-					Quality:    "360p",
-					Resolution: "640x360",
-					Format:     "MP4",
-					FileSize:   20000000,
-					HasVideo:   true,
-					HasAudio:   true,
-				},
-				{
-					ID:          "140",
-					Quality:     "Audio - High",
-					Format:      "M4A",
-					FileSize:    5000000,
-					IsAudioOnly: true,
-					HasAudio:    true,
-				},
-			},
+			Title:      videoInfo.Title,
+			Author:     videoInfo.Author,
+			Duration:   videoInfo.Duration,
+			Views:      formatViews(videoInfo.Views),
+			UploadDate: videoInfo.UploadDate,
+			Formats:    formats,
 		}
 	}
+}
+
+// Helper function to format view count
+func formatViews(views uint64) string {
+	if views >= 1000000000 {
+		return fmt.Sprintf("%.1fB", float64(views)/1000000000)
+	}
+	if views >= 1000000 {
+		return fmt.Sprintf("%.1fM", float64(views)/1000000)
+	}
+	if views >= 1000 {
+		return fmt.Sprintf("%.1fK", float64(views)/1000)
+	}
+	return fmt.Sprintf("%d", views)
 }

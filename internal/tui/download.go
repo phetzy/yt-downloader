@@ -12,16 +12,23 @@ import (
 func (m *Model) updateDownloading(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case downloadProgressMsg:
-		// Update progress (to be implemented with actual progress bar)
-		// For now, simulate completion after a moment
+		// Update progress
+		if msg.TotalBytes > 0 {
+			m.downloadProgress = float64(msg.BytesDownloaded) / float64(msg.TotalBytes)
+		}
+		
+		// Check if download is complete
 		if msg.BytesDownloaded >= msg.TotalBytes {
 			m.state = StateComplete
 			return m, nil
 		}
+		
+		// Continue receiving progress updates
 		return m, nil
 		
 	case downloadCompleteMsg:
 		m.downloadPath = msg.FilePath
+		m.downloadProgress = 1.0
 		m.state = StateComplete
 		return m, nil
 		
@@ -37,6 +44,10 @@ func (m *Model) updateDownloading(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		}
+		
+	case tea.WindowSizeMsg:
+		m.progressBar.Width = msg.Width - 4
+		return m, nil
 	}
 	
 	return m, nil
@@ -50,13 +61,28 @@ func (m *Model) viewDownloading() string {
 	b.WriteString(RenderTitle("⬇️  Downloading..."))
 	b.WriteString("\n\n")
 	
-	// Progress information (placeholder)
-	b.WriteString("Progress: 45%\n\n")
-	b.WriteString("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
+	// Display video title if available
+	if info, ok := m.videoInfo.(videoInfoMsg); ok {
+		b.WriteString(fmt.Sprintf("File: %s\n\n", info.Title))
+	}
 	
-	b.WriteString(fmt.Sprintf("Downloaded: %s / %s\n", "22.5 MB", "50.0 MB"))
-	b.WriteString(fmt.Sprintf("Speed:      %s\n", "5.2 MB/s"))
-	b.WriteString(fmt.Sprintf("ETA:        %s\n", "5 seconds"))
+	// Render the progress bar
+	percentage := m.downloadProgress * 100
+	b.WriteString(fmt.Sprintf("Progress: %.1f%%\n\n", percentage))
+	b.WriteString(m.progressBar.ViewAs(m.downloadProgress))
+	b.WriteString("\n\n")
+	
+	// Download statistics (placeholder values for now)
+	// In production, these would come from the actual download progress message
+	b.WriteString(fmt.Sprintf("Downloaded: %.1f MB / %.1f MB\n", 
+		m.downloadProgress*50.0, 50.0))
+	b.WriteString(fmt.Sprintf("Speed:      %.2f MB/s\n", 5.2))
+	eta := int((1.0 - m.downloadProgress) * 10)
+	if eta > 0 {
+		b.WriteString(fmt.Sprintf("ETA:        %s\n", formatDuration(eta)))
+	} else {
+		b.WriteString("ETA:        calculating...\n")
+	}
 	
 	b.WriteString("\n")
 	helpText := "Ctrl+C to cancel download"

@@ -10,22 +10,27 @@ import (
 // updateQualitySelect handles updates for the quality selection state
 func (m *Model) updateQualitySelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.qualityList.SetWidth(msg.Width)
+		m.qualityList.SetHeight(msg.Height - 10)
+		return m, nil
+		
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			// Format selected, move to directory picker
-			m.state = StateDirectoryPicker
-			return m, nil
-		case "up", "k":
-			// Move selection up (to be implemented with list component)
-			return m, nil
-		case "down", "j":
-			// Move selection down (to be implemented with list component)
-			return m, nil
+			// Get selected item
+			if i, ok := m.qualityList.SelectedItem().(qualityItem); ok {
+				m.selectedFormat = i.format
+				m.state = StateDirectoryPicker
+				return m, nil
+			}
 		}
 	}
 	
-	return m, nil
+	// Update the list component
+	var cmd tea.Cmd
+	m.qualityList, cmd = m.qualityList.Update(msg)
+	return m, cmd
 }
 
 // viewQualitySelect renders the quality selection screen
@@ -34,10 +39,16 @@ func (m *Model) viewQualitySelect() string {
 	
 	b.WriteString("\n")
 	b.WriteString(RenderTitle("🎬 Select Quality"))
-	b.WriteString("\n\n")
+	b.WriteString("\n")
 	
 	// Display video information if available
 	if info, ok := m.videoInfo.(videoInfoMsg); ok {
+		// Update list items if not already set
+		if len(m.qualityList.Items()) == 0 && len(info.Formats) > 0 {
+			items := convertFormatsToItems(info.Formats)
+			m.qualityList.SetItems(items)
+		}
+		
 		b.WriteString(RenderBox(fmt.Sprintf(
 			"Title:    %s\n"+
 			"Channel:  %s\n"+
@@ -50,60 +61,17 @@ func (m *Model) viewQualitySelect() string {
 			info.Views,
 			info.UploadDate,
 		), false))
-		b.WriteString("\n\n")
-		
-		// Display available formats
-		b.WriteString("Available Formats:\n\n")
-		
-		// Video + Audio formats
-		hasVideoFormats := false
-		for _, format := range info.Formats {
-			if format.HasVideo && format.HasAudio {
-				if !hasVideoFormats {
-					b.WriteString(RenderSubtitle("📹 Video + Audio"))
-					b.WriteString("\n")
-					hasVideoFormats = true
-				}
-				size := formatBytes(format.FileSize)
-				b.WriteString(fmt.Sprintf("  • %s (%s) - %s - %s\n", 
-					format.Quality, 
-					format.Resolution,
-					format.Format,
-					size,
-				))
-			}
-		}
-		
-		// Audio-only formats
 		b.WriteString("\n")
-		hasAudioFormats := false
-		for _, format := range info.Formats {
-			if format.IsAudioOnly {
-				if !hasAudioFormats {
-					b.WriteString(RenderSubtitle("🎵 Audio Only"))
-					b.WriteString("\n")
-					hasAudioFormats = true
-				}
-				size := formatBytes(format.FileSize)
-				b.WriteString(fmt.Sprintf("  • %s - %s - %s\n", 
-					format.Quality,
-					format.Format,
-					size,
-				))
-			}
-		}
 	}
 	
+	// Render the list component
+	b.WriteString(m.qualityList.View())
 	b.WriteString("\n")
-	helpText := "↑/↓ or j/k to navigate • Enter to select • Esc to go back"
+	
+	helpText := "↑/↓ or j/k to navigate • Enter to select • Esc to go back • q to quit"
 	b.WriteString(RenderHelp(helpText))
 	
-	content := b.String()
-	if m.width > 0 {
-		content = Center(m.width, content)
-	}
-	
-	return containerStyle.Render(content)
+	return b.String()
 }
 
 // formatBytes converts bytes to human-readable format
