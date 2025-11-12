@@ -12,7 +12,13 @@ import (
 func (m *Model) updateDownloading(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case downloadProgressMsg:
-		// Update progress
+		// Update progress tracking
+		m.bytesDownloaded = msg.BytesDownloaded
+		m.totalBytes = msg.TotalBytes
+		m.downloadSpeed = msg.Speed
+		m.downloadETA = msg.ETA
+		
+		// Calculate progress percentage
 		if msg.TotalBytes > 0 {
 			m.downloadProgress = float64(msg.BytesDownloaded) / float64(msg.TotalBytes)
 		}
@@ -72,16 +78,30 @@ func (m *Model) viewDownloading() string {
 	b.WriteString(m.progressBar.ViewAs(m.downloadProgress))
 	b.WriteString("\n\n")
 	
-	// Download statistics (placeholder values for now)
-	// In production, these would come from the actual download progress message
-	b.WriteString(fmt.Sprintf("Downloaded: %.1f MB / %.1f MB\n", 
-		m.downloadProgress*50.0, 50.0))
-	b.WriteString(fmt.Sprintf("Speed:      %.2f MB/s\n", 5.2))
-	eta := int((1.0 - m.downloadProgress) * 10)
-	if eta > 0 {
-		b.WriteString(fmt.Sprintf("ETA:        %s\n", formatDuration(eta)))
+	// Download statistics with real data
+	if m.totalBytes > 0 {
+		downloadedStr := formatBytes(m.bytesDownloaded)
+		totalStr := formatBytes(m.totalBytes)
+		b.WriteString(fmt.Sprintf("Downloaded: %s / %s\n", downloadedStr, totalStr))
 	} else {
+		b.WriteString("Downloaded: calculating...\n")
+	}
+	
+	// Display speed using formatSpeed function
+	if m.downloadSpeed > 0 {
+		speedStr := formatSpeed(m.downloadSpeed)
+		b.WriteString(fmt.Sprintf("Speed:      %s\n", speedStr))
+	} else {
+		b.WriteString("Speed:      calculating...\n")
+	}
+	
+	// Display ETA
+	if m.downloadETA > 0 {
+		b.WriteString(fmt.Sprintf("ETA:        %s\n", formatDuration(m.downloadETA)))
+	} else if m.downloadProgress > 0 && m.downloadProgress < 1.0 {
 		b.WriteString("ETA:        calculating...\n")
+	} else {
+		b.WriteString("ETA:        --\n")
 	}
 	
 	b.WriteString("\n")

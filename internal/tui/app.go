@@ -48,6 +48,10 @@ type Model struct {
 	
 	// Progress tracking
 	downloadProgress float64
+	downloadSpeed    float64 // bytes per second
+	bytesDownloaded  int64
+	totalBytes       int64
+	downloadETA      int // seconds
 	
 	// Flags
 	quitting    bool

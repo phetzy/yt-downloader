@@ -10,11 +10,13 @@ import (
 
 // Custom errors
 var (
-	ErrInvalidURL      = errors.New("invalid YouTube URL")
-	ErrVideoNotFound   = errors.New("video not found or unavailable")
-	ErrNetworkError    = errors.New("network error occurred")
-	ErrPermissionDenied = errors.New("permission denied")
-	ErrDiskFull        = errors.New("not enough disk space")
+	ErrInvalidURL           = errors.New("invalid YouTube URL")
+	ErrVideoNotFound        = errors.New("video not found or unavailable")
+	ErrNetworkError         = errors.New("network error occurred")
+	ErrPermissionDenied     = errors.New("permission denied")
+	ErrDiskFull             = errors.New("not enough disk space")
+	ErrAgeRestricted        = errors.New("video is age-restricted or requires sign-in")
+	ErrVideoUnavailable     = errors.New("video is unavailable in your region or requires authentication")
 )
 
 // Custom messages for Bubble Tea

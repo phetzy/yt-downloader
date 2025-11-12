@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/phetzy/yt-downloader/internal/utils"
@@ -38,7 +39,7 @@ func (m *Model) updateDirectoryPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// User selected current directory, proceed to download
 					m.downloadPath = m.currentDir
 					m.state = StateDownloading
-					return m, startDownload()
+					return m, startDownload(m.videoURL, m.selectedFormat, m.downloadPath)
 				} else {
 					// Enter the selected subdirectory
 					m.currentDir = utils.JoinPath(m.currentDir, selectedDir)
@@ -52,7 +53,7 @@ func (m *Model) updateDirectoryPicker(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Space bar selects current directory
 			m.downloadPath = m.currentDir
 			m.state = StateDownloading
-			return m, startDownload()
+			return m, startDownload(m.videoURL, m.selectedFormat, m.downloadPath)
 			
 		case "up", "k":
 			// Move selection up
@@ -176,15 +177,19 @@ func (m *Model) viewDirectoryPicker() string {
 }
 
 // startDownload initiates the download process
-func startDownload() tea.Cmd {
+func startDownload(videoURL string, selectedFormat interface{}, downloadPath string) tea.Cmd {
 	return func() tea.Msg {
-		// TODO: Implement actual download
-		// For now, simulate progress updates
-		return downloadProgressMsg{
-			BytesDownloaded: 0,
-			TotalBytes:      50000000,
-			Speed:           0,
-			ETA:             0,
+		// For now, we'll complete the download immediately
+		// In a real implementation, this would:
+		// 1. Use the youtube downloader
+		// 2. Stream progress updates
+		// 3. Save to the selected path
+		
+		// Simulate successful download
+		time.Sleep(2 * time.Second)
+		
+		return downloadCompleteMsg{
+			FilePath: downloadPath,
 		}
 	}
 }

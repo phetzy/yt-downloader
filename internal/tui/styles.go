@@ -6,13 +6,11 @@ import (
 
 var (
 	// Color palette
-	primaryColor   = lipgloss.Color("#FF0000") // YouTube red
-	accentColor    = lipgloss.Color("#00ADD8") // Go blue
-	successColor   = lipgloss.Color("#00FF00")
-	errorColor     = lipgloss.Color("#FF0000")
-	warningColor   = lipgloss.Color("#FFAA00")
-	subtleColor    = lipgloss.Color("#888888")
-	backgroundColor = lipgloss.Color("#1a1a1a")
+	primaryColor = lipgloss.Color("#FF0000") // YouTube red
+	accentColor  = lipgloss.Color("#00ADD8") // Go blue
+	successColor = lipgloss.Color("#00FF00")
+	errorColor   = lipgloss.Color("#FF0000")
+	subtleColor  = lipgloss.Color("#888888")
 	
 	// Text styles
 	titleStyle = lipgloss.NewStyle().
@@ -53,14 +51,6 @@ var (
 			Padding(1, 2).
 			Margin(1, 0)
 	
-	// Input styles
-	focusedInputStyle = lipgloss.NewStyle().
-				Foreground(primaryColor).
-				Bold(true)
-	
-	blurredInputStyle = lipgloss.NewStyle().
-				Foreground(subtleColor)
-	
 	// List styles
 	selectedItemStyle = lipgloss.NewStyle().
 				Foreground(primaryColor).
@@ -74,16 +64,9 @@ var (
 	spinnerStyle = lipgloss.NewStyle().
 			Foreground(accentColor)
 	
-	// Progress styles
-	progressBarStyle = lipgloss.NewStyle().
-				Foreground(successColor)
-	
 	// Layout styles
 	containerStyle = lipgloss.NewStyle().
 			Padding(2, 4)
-	
-	centeredStyle = lipgloss.NewStyle().
-			Align(lipgloss.Center)
 )
 
 // Helper functions for styling

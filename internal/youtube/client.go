@@ -57,7 +57,21 @@ func (c *Client) GetVideoInfo(url string) (*VideoInfo, error) {
 	// Fetch video information
 	video, err := c.client.GetVideo(videoID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch video info: %w", err)
+		// Check for common error patterns
+		errMsg := err.Error()
+		
+		// Detect age-restricted or sign-in required videos
+		if strings.Contains(errMsg, "400") || strings.Contains(errMsg, "403") {
+			return nil, fmt.Errorf("video is age-restricted or requires sign-in. This tool cannot download videos that require YouTube authentication. Please try a different video")
+		}
+		
+		// Detect unavailable videos
+		if strings.Contains(errMsg, "404") {
+			return nil, fmt.Errorf("video not found. It may be private, deleted, or unavailable in your region")
+		}
+		
+		// Generic error with helpful context
+		return nil, fmt.Errorf("failed to fetch video info: %w. This may be due to regional restrictions, age restrictions, or the video requiring sign-in", err)
 	}
 
 	// Parse formats
@@ -71,7 +85,7 @@ func (c *Client) GetVideoInfo(url string) (*VideoInfo, error) {
 		Title:       video.Title,
 		Author:      video.Author,
 		Duration:    duration,
-		Views:       video.Views,
+		Views:       uint64(video.Views),
 		UploadDate:  video.PublishDate.Format("2006-01-02"),
 		Description: video.Description,
 		Formats:     formats,
