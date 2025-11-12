@@ -1,0 +1,196 @@
+package youtube
+
+import (
+	"errors"
+	"fmt"
+	"strings"
+
+	"github.com/kkdai/youtube/v2"
+)
+
+// Client wraps the YouTube client
+type Client struct {
+	client youtube.Client
+}
+
+// NewClient creates a new YouTube client
+func NewClient() *Client {
+	return &Client{
+		client: youtube.Client{},
+	}
+}
+
+// VideoInfo contains information about a YouTube video
+type VideoInfo struct {
+	ID          string
+	Title       string
+	Author      string
+	Duration    string
+	Views       uint64
+	UploadDate  string
+	Description string
+	Formats     []Format
+}
+
+// Format represents a video/audio format
+type Format struct {
+	ItagNo      int
+	Quality     string
+	Resolution  string
+	MimeType    string
+	Bitrate     int
+	FileSize    int64
+	IsAudioOnly bool
+	HasVideo    bool
+	HasAudio    bool
+	Extension   string
+}
+
+// GetVideoInfo fetches information about a YouTube video
+func (c *Client) GetVideoInfo(url string) (*VideoInfo, error) {
+	// Extract video ID from URL
+	videoID, err := extractVideoID(url)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch video information
+	video, err := c.client.GetVideo(videoID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch video info: %w", err)
+	}
+
+	// Parse formats
+	formats := c.parseFormats(video.Formats)
+
+	// Format duration
+	duration := formatDuration(int(video.Duration.Seconds()))
+
+	return &VideoInfo{
+		ID:          video.ID,
+		Title:       video.Title,
+		Author:      video.Author,
+		Duration:    duration,
+		Views:       video.Views,
+		UploadDate:  video.PublishDate.Format("2006-01-02"),
+		Description: video.Description,
+		Formats:     formats,
+	}, nil
+}
+
+// parseFormats converts youtube.Format to our Format type
+func (c *Client) parseFormats(ytFormats youtube.FormatList) []Format {
+	var formats []Format
+
+	for _, f := range ytFormats {
+		format := Format{
+			ItagNo:      f.ItagNo,
+			Quality:     f.Quality,
+			MimeType:    f.MimeType,
+			Bitrate:     f.Bitrate,
+			FileSize:    f.ContentLength,
+			IsAudioOnly: strings.Contains(f.MimeType, "audio"),
+			HasVideo:    strings.Contains(f.MimeType, "video"),
+			HasAudio:    f.AudioChannels > 0,
+		}
+
+		// Determine resolution
+		if f.Width > 0 && f.Height > 0 {
+			format.Resolution = fmt.Sprintf("%dx%d", f.Width, f.Height)
+		}
+
+		// Determine extension from MIME type
+		format.Extension = getExtensionFromMimeType(f.MimeType)
+
+		// Only include formats with audio for video+audio, or audio-only formats
+		if (format.HasVideo && format.HasAudio) || format.IsAudioOnly {
+			formats = append(formats, format)
+		}
+	}
+
+	return formats
+}
+
+// extractVideoID extracts the video ID from various YouTube URL formats
+func extractVideoID(url string) (string, error) {
+	url = strings.TrimSpace(url)
+
+	// Handle different URL formats
+	if strings.Contains(url, "youtube.com/watch?v=") {
+		parts := strings.Split(url, "v=")
+		if len(parts) < 2 {
+			return "", errors.New("invalid YouTube URL")
+		}
+		videoID := strings.Split(parts[1], "&")[0]
+		return videoID, nil
+	}
+
+	if strings.Contains(url, "youtu.be/") {
+		parts := strings.Split(url, "youtu.be/")
+		if len(parts) < 2 {
+			return "", errors.New("invalid YouTube URL")
+		}
+		videoID := strings.Split(parts[1], "?")[0]
+		return videoID, nil
+	}
+
+	if strings.Contains(url, "youtube.com/v/") {
+		parts := strings.Split(url, "/v/")
+		if len(parts) < 2 {
+			return "", errors.New("invalid YouTube URL")
+		}
+		videoID := strings.Split(parts[1], "?")[0]
+		return videoID, nil
+	}
+
+	if strings.Contains(url, "youtube.com/embed/") {
+		parts := strings.Split(url, "/embed/")
+		if len(parts) < 2 {
+			return "", errors.New("invalid YouTube URL")
+		}
+		videoID := strings.Split(parts[1], "?")[0]
+		return videoID, nil
+	}
+
+	// If none of the patterns match, assume it's just the video ID
+	if len(url) == 11 {
+		return url, nil
+	}
+
+	return "", errors.New("invalid YouTube URL format")
+}
+
+// getExtensionFromMimeType extracts file extension from MIME type
+func getExtensionFromMimeType(mimeType string) string {
+	mimeType = strings.ToLower(mimeType)
+
+	if strings.Contains(mimeType, "mp4") {
+		return "mp4"
+	}
+	if strings.Contains(mimeType, "webm") {
+		return "webm"
+	}
+	if strings.Contains(mimeType, "3gpp") {
+		return "3gp"
+	}
+	if strings.Contains(mimeType, "m4a") {
+		return "m4a"
+	}
+	if strings.Contains(mimeType, "audio") {
+		return "m4a"
+	}
+
+	return "mp4" // default
+}
+
+// formatDuration formats duration in seconds to HH:MM:SS or MM:SS
+func formatDuration(seconds int) string {
+	hours := seconds / 3600
+	minutes := (seconds % 3600) / 60
+	secs := seconds % 60
+
+	if hours > 0 {
+		return fmt.Sprintf("%d:%02d:%02d", hours, minutes, secs)
+	}
+	return fmt.Sprintf("%d:%02d", minutes, secs)
+}
